@@ -3,8 +3,7 @@ import sys, itertools
 import vcf
 import numpy as np
 
-#./block_cutter_vcf_LB.py Cfun135.Cfun142.Cfun83.Cfun71.Cfun86B.Cfun3549B.CallableLoci.mbq10mmq20md1.masked.CALLABLE.bed2 Cfun135.Cfun142.Cfun83.Cfun71.Cfun86B.Cfun3549B.calibrated_haploid.filtered_variants.CallableLoci.md1.masked.vcf.gz loci.txt 271 Cfun135.Cfun142.Cfun83.Cfun71.Cfun86B.Cfun3549B > Cfun271_Summary.txt &
-
+#./block_cutter_vcf_LB.py Cfun.CallableLoci.mbq10mmq20md1.masked.CALLABLE.bed2 Cfun.calibrated_haploid.filtered_variants.CallableLoci.md1.masked.vcf.gz loci.txt 271 Cfun135.Cfun142.Cfun83.Cfun71.Cfun86B.Cfun3549B 
 """
 Updates a dictionary by appending tuples
 """
@@ -202,37 +201,32 @@ def main():
 	vcf_reader = vcf.Reader(filename=sys.argv[2])
 	var_contig = get_chrom_set(sys.argv[3])
 	samp = sys.argv[5].split(".")
-	print 'no of contigs > ' + str(block_len*2)+' bases:' +str(len(ttdict.keys()))
+	print 'no of contigs > twice the blocklength, i.e. ' + str(block_len*2)+' bases: '+str(len(ttdict.keys()))
 	nndict = blockcutdict(ttdict, block_len)
 	print 'no of unfiltered blocks > '+str(block_len)+' bases: '+str(len(nndict.keys()))
 	ndictpostfilt = filter_dict_maxspan(nndict,2*block_len)
 	print 'no of filtered blocks > '+str(block_len)+' bases + no longer than '+ str(block_len*2)+' bases: '+str(len(ndictpostfilt.keys()))
-	testkeys = list(ndictpostfilt.keys())[0:500]
+	testkeys = list(ndictpostfilt.keys())[0:10000]
 	testdict = {}
 	for i in testkeys:
 		testdict.update({i:ndictpostfilt.get(i)})
 	fetched_dict = get_vcf_contigs(vcf_reader, testdict, var_contig, min_GQ=0, min_DP=0, samples = samp)
 #	fetched_dict = get_vcf_contigs(vcf_reader, ndictpostfilt, var_contig, min_GQ=0, min_DP=0, samples = samp)
 #	print('no of filtered fetched blocks > 0.5kb: '+ str(len(fetched_dict.keys())))
-	dict_DeNoned=filter_dict_ByNoneCount(fetched_dict,5)#could make this a sys.argv
+	dict_DeNoned=filter_dict_ByNoneCount(fetched_dict,5) #could make this a sys.argv
 	print('no of filtered fetched blocks with < 5 Nones: '+str(len(dict_DeNoned.keys())))
 	dict_Cleaned=change_dict_RemoveMultiSNoneS(dict_DeNoned)
-	""""
-	This is a very ugly line of code that counts up sites with 4 or more site types, which would correspond to a 4GT. At the moment we don't do anything with this info, just spit out how many non-violated blocks we have. This could also be a function if required and we could do an extra filtering step to remove these blocks.
-	"""
-#	count4gt=[sum(1 for x in [len(set(zip(site[0],site[1]))) for site in itertools.combinations(block, 2)] if x>=4) for block in dict_Cleaned.values()]
-#	print('no of blocks with no 4 gamete violations '+str(count4gt.count(0)))
-#	print('no of filtered fetched blocks > 0.5kb with < 5 Nones + multiallelic or None sites converted to invariant: '+str(len(dict_Cleaned.keys())))
-
-#	np.save(sys.argv[5]+'.'+sys.argv[4]+'.npy',dict_Cleaned)
-#	tot_block_no = len(fetched_dict.keys())
-#	print 'no of filtered fetched blocks > 0.5kb: '+str(tot_block_no)
+	print('no of filtered fetched blocks > 0.5kb with < 5 Nones + multiallelic or None sites converted to invariant: '+str(len(dict_Cleaned.keys())))
+#	This is a very ugly line of code that counts up sites with 4 or more site types, which would correspond to a 4GT. At the moment we don't do anything with this info, just spit out how many non-violated blocks we have. This could also be a function if required and we could do an extra filtering step to remove these blocks.
+	count4gt=[sum(1 for x in [len(set(zip(site[0],site[1]))) for site in itertools.combinations(block, 2)] if x>=4) for block in dict_Cleaned.values()]
+	print('no of blocks with no 4 gamete violations '+str(count4gt.count(0)))
+	np.save(sys.argv[5]+'.'+sys.argv[4]+'.npy',dict_Cleaned)
 #	slist = dict_Cleaned.values()
 #	out=str(slist).replace("[","{").replace("]","}").replace(")","}").replace("(","{")
 #	print out
 #	print 'total number of muts: '+str(count)
-	twobytwo=count2X2(dict_Cleaned)
-	out=str(twobytwo).replace("[","{").replace("]","}")
-	print out
+#	twobytwo=count2X2(dict_Cleaned)
+#	out=str(twobytwo).replace("[","{").replace("]","}")
+#	print out
 if __name__== "__main__":
 	main()
